@@ -51,11 +51,10 @@ contract tcg {
     );
     // uint excl
 
-    uint public numCards = 0;
     // Mapping of all cards
     mapping(uint => Card) cards;
     // A mapping of owned cards
-    mapping(address => Card) ownershipToCard;
+    mapping(uint => address) ownershipToCard;
 
     constructor() public {
     }
@@ -69,18 +68,24 @@ contract tcg {
         emit CardCreated(numCards, _name, _desc,_price,false);
     }
 
-    function buyCard(uint _id) public payable {
+    function buyCard(uint _id) public {
+        require(_cardExists(_id), "ID not issued to any exisiting card");
         require(cards[_id].owned == false, "Owned card selected.");
-        require(msg.sender.balance > cards[_id].price, "Insufficient funds in your account");
-
+        require(msg.sender.balance >= cards[_id].price, "Insufficient funds to create card!");
         
+        balance[msg.sender] += cards[_id].price;
     }
+
+    function transferOwnership(address _from, address _to, uint _cardId) {
+        if()
+    }
+
+    function _cardExists(uint _id) internal view returns (bool){
+        return (cards[_id].id != 0);
+    }
+
+    function _owns(address _claimant, uint _cardId)
 }
 /*sidenote: for a function to actually withdraw/fund ether to an address,
 the payable modifier has to set otherwise the transaction will be rejected
 */
-
-
-contract cardOwnership {
-    
-}

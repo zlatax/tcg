@@ -1,9 +1,11 @@
-pragma solidity >=0.4.22 <0.9.0;
+pragma solidity >=0.8.0;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract Ownable {
     address public owner;
 
-    constructor() {
+    constructor() public {
         owner = msg.sender;
     }
 
@@ -73,20 +75,19 @@ contract tcg {
 
     // allows users to create new cards, however costing 
     // should probably have some algo to determine price of card (either custom or automatic) - custom for now.
-    function createCard(string memory _name, string memory _desc, uint _price)  public {
-        require(_cardExists(_id), "ID not issued to any exisiting card");
-        require(cards[_id].owned == false, "Owned card selected.");
-        require(msg.sender.balance >= cards[_id].price, "Insufficient funds to create card!");
+    function createCard(string memory _name, string memory _desc, uint _price)  public payable {
+        require(msg.sender.balance >= _price, "Insufficient funds to create card!");
         
         numCards++;
-        cards[numCards] = Card(numCards, _name, _desc,_price,msg.sender);
+        cards[numCards] = Card(numCards, _name, _desc,_price,true);
 
-        _transfer(0, msg.sender, numCards);
+        _transfer(address(0), msg.sender, numCards);
 
         // charge user's eth account
-        msg.sender.send(_price);
+        address payable owner = payable(msg.sender);
+        owner.transfer(_price);
 
-        emit CardCreated(numCards, _name, _desc,_price,false);
+        emit CardCreated(numCards, _name, _desc,_price,msg.sender);
     }
 
     // Function to buy card off the market (pool of cards owned by the contract)
@@ -117,8 +118,9 @@ contract tcg {
         // For now, the contract cannot hold any cards (can add market feature in future)
         require(_to!=address(this));
         // sender must own card
-        require(_owns(_from, _cardId), "Sender does not have ownership of card");
-
+        if(_from!=address(0)) {
+            require(_owns(_from, _cardId), "Sender does not have ownership of card");
+        }
         ownershipToCard[_cardId] = _to;
 
         emit Transfer(_from, _to, _cardId);

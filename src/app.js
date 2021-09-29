@@ -3,6 +3,7 @@ App = {
   contracts: {},
 
   load: async () => {
+    var config = require('./config.js')
     await App.loadEth()
     await App.loadAccount()
     await App.loadContract()
@@ -44,8 +45,11 @@ App = {
 
   loadAccount: async () => {
     // Set the current blockchain account
-    web3.eth.defaultAccount = web3.eth.accounts[0]
-    App.account = web3.eth.defaultAccount
+    // web3.eth.defaultAccount = web3.eth.accounts[0]  // <- depreceated
+    // App.account = web3.eth.defaultAccount
+
+    //
+    App.account = ethereum.selectedAddress
   },
 
   loadContract: async () => {
@@ -56,7 +60,7 @@ App = {
 
     // Hydrate the smart contract with values from the blockchain
     try {
-        App.todoList = await App.contracts.tcg.deployed()
+        App.tcg = await App.contracts.tcg.deployed()
     } catch(error) {
         console.warn("Tcg: Please connect to the correct ETH network. Cannot find deployed smart contract!")
     }
@@ -80,6 +84,48 @@ App = {
     // Update loading state
     App.setLoading(false)
   },
+
+  renderCards: async() => {
+    const cardCount = await App.tcg.balanceOf(App.account)
+    const ownerCards = App.tcg.methods.userOwnedCards.call(App.account)
+
+    for(var i=1; i<=ownerCards.length;i++) {
+      const tokenURI = App.tcg.tokenURI(ownerCards[i])
+
+    }
+  },
+
+  infuraPin: async() => {
+    const https = require('https')
+
+    const projectId = config.INFURA_PROJECT_ID
+    const projectSecret = config.INFURA_PROJECT_SECRET
+
+    const options = {
+      host: 'ipfs.infura.io',
+      port: 5001,
+      path: '/api/v0/pin/add?arg=QmeGAVddnBSnKc1DLE7DLV9uuTqo5F7QbaveTjr45JUdQn',
+      method: 'POST',
+      auth: projectId + ':' + projectSecret
+    }
+
+    let req = https.request(options, (res) => {
+      let body = ''
+      res.on('data', function (chunk) {
+        body += chunk
+      })
+      res.on('end', function () {
+        console.log(body)
+      })
+    })
+    req.end()
+  }
+
+  // need to work on the ipfs api to store metadata of the tokens on ipfs provided by infura.
+
+
+
+
 
   renderTasks: async () => {
     // Load the total task count from the blockchain
@@ -114,32 +160,6 @@ App = {
     }
   },
 
-  createTask: async () => {
-    App.setLoading(true)
-    const content = $('#newTask').val()
-    await App.todoList.createTask(content)
-    window.location.reload()
-  },
-
-  toggleCompleted: async(e) => {
-      App.setLoading(true)
-      const taskId = e.target.name
-      await App.todoList.toggleCompleted(taskId)
-      window.location.reload()
-  },
-
-  setLoading: (boolean) => {
-    App.loading = boolean
-    const loader = $('#loader')
-    const content = $('#content')
-    if (boolean) {
-      loader.show()
-      content.hide()
-    } else {
-      loader.hide()
-      content.show()
-    }
-  }
 }
 
 $(() => {
